@@ -6,10 +6,7 @@ from config import (
     URL,
     PAGE_FILTER_ID,
     MAX_PRICE,
-    CPU,
     GPU,
-    RAM,
-    SSD,
 )
 
 from telegram import notify
@@ -57,7 +54,6 @@ def build_url(page):
 def get_all_products():
 
     products = []
-
     page = 1
 
     while True:
@@ -109,30 +105,18 @@ def get_price(product):
 
 def is_match(product):
 
-    if get_price(product) > MAX_PRICE:
+    price = get_price(product)
+
+    if price > MAX_PRICE:
         return False
 
     specs = get_specs(product)
 
-    processor = specs.get("Processor", "")
     graphics = specs.get("Graphic Card", "")
-    memory = specs.get("Memory", "")
-    storage = specs.get("Storage", "")
-    os = specs.get("Operating System", "")
 
-    if not any(cpu in processor for cpu in CPU):
-        return False
+    graphics_lower = graphics.lower()
 
-    if not any(gpu.lower() in graphics.lower() for gpu in GPU):
-        return False
-
-    if "16 GB" not in memory and "32 GB" not in memory and "64 GB" not in memory:
-        return False
-
-    if "1 TB" not in storage and "1024 GB" not in storage:
-        return False
-
-    if "Windows 11" not in os:
+    if not any(gpu in graphics_lower for gpu in GPU):
         return False
 
     return True
@@ -145,10 +129,7 @@ def print_product(product):
     print("=" * 70)
     print(product["productName"])
     print(f"₹{get_price(product):,}")
-    print(specs.get("Processor", ""))
     print(specs.get("Graphic Card", ""))
-    print(specs.get("Memory", ""))
-    print(specs.get("Storage", ""))
     print("https://www.lenovo.com" + product["url"])
     print()
 
