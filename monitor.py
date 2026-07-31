@@ -1,39 +1,40 @@
-import json
 import os
+import json
 import requests
-from bs4 import BeautifulSoup
 
-from config import URL, CPU, GPU, RAM, SSD, MAX_PRICE
+from config import *
 
 BOT_TOKEN = os.environ["BOT_TOKEN"]
 CHAT_ID = os.environ["CHAT_ID"]
 
+url = "https://openapi.lenovo.com/in/outletin/en/ofp/search/dlp/product/query/get/_tsc"
 
-def send(msg):
-    requests.post(
-        f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage",
-        data={
-            "chat_id": CHAT_ID,
-            "text": msg
-        }
-    )
-
+params = {
+    "pageFilterId": "afdcd3f7-d8e6-4e9e-a76a-d6060dc75ae9",
+    "subSeriesCode": "",
+    "loyalty": "false",
+    "params": json.dumps({
+        "classificationGroupIds": "400001",
+        "pageFilterId": "afdcd3f7-d8e6-4e9e-a76a-d6060dc75ae9",
+        "facets": [],
+        "page": "1",
+        "pageSize": 30,
+        "groupCode": "",
+        "init": True,
+        "sorts": ["newest", "priceUp"],
+        "version": "v2",
+        "enablePreselect": True,
+        "subseriesCode": ""
+    })
+}
 
 headers = {
     "User-Agent": "Mozilla/5.0"
 }
 
-response = requests.get(URL, headers=headers, timeout=30)
+response = requests.get(url, params=params, headers=headers)
 
-print("Status:", response.status_code)
+print(response.status_code)
 
-soup = BeautifulSoup(response.text, "lxml")
-
-print("Title:", soup.title.string if soup.title else "No title")
-
-print("Length:", len(response.text))
-
-with open("page.html", "w", encoding="utf-8") as f:
+with open("response.json", "w", encoding="utf-8") as f:
     f.write(response.text)
-
-send("✅ Lenovo Monitor is running successfully.")
