@@ -11,7 +11,7 @@ PAGE_FILTER_ID = "afdcd3f7-d8e6-4e9e-a76a-d6060dc75ae9"
 # Filters
 # ==============================
 
-MAX_PRICE = 1,83,391
+MAX_PRICE = 183391
 
 
 GPU = [
