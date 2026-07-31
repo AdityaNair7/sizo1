@@ -35,3 +35,17 @@ with sync_playwright() as p:
         f.write(page.content())
 
     browser.close()
+    
+from parser import get_products
+
+...
+
+html = page.content()
+
+products = get_products(html)
+
+print("Products found:", len(products))
+
+for product in products[:10]:
+    print("=" * 80)
+    print(product["text"][:500])
