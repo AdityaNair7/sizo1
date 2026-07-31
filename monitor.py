@@ -1,14 +1,18 @@
 from playwright.sync_api import sync_playwright
+from parser import get_products
 
 URL = "https://www.lenovo.com/in/outletin/en/laptops/"
 
 with sync_playwright() as p:
+
     browser = p.chromium.launch(
         headless=True,
         args=["--disable-dev-shm-usage"]
     )
 
-    page = browser.new_page(viewport={"width": 1600, "height": 900})
+    page = browser.new_page(
+        viewport={"width": 1600, "height": 900}
+    )
 
     page.goto(URL, wait_until="domcontentloaded")
 
@@ -31,21 +35,17 @@ with sync_playwright() as p:
         except Exception:
             break
 
+    html = page.content()
+
     with open("output.html", "w", encoding="utf-8") as f:
-        f.write(page.content())
+        f.write(html)
+
+    products = get_products(html)
+
+    print("Products found:", len(products))
+
+    for product in products[:10]:
+        print("=" * 80)
+        print(product["text"][:500])
 
     browser.close()
-    
-from parser import get_products
-
-...
-
-html = page.content()
-
-products = get_products(html)
-
-print("Products found:", len(products))
-
-for product in products[:10]:
-    print("=" * 80)
-    print(product["text"][:500])
