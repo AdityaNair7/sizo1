@@ -2,16 +2,12 @@ import json
 import os
 import requests
 
-from config import (
-    BOT_TOKEN,
-    CHAT_ID,
-    SENT_FILE,
-)
+from config import SENT_FILE
+
+BOT_TOKEN = os.getenv("BOT_TOKEN", "")
+CHAT_ID = os.getenv("CHAT_ID", "")
 
 
-# --------------------------------
-# Load sent products
-# --------------------------------
 def load_sent():
 
     if not os.path.exists(SENT_FILE):
@@ -24,22 +20,16 @@ def load_sent():
         return []
 
 
-# --------------------------------
-# Save sent products
-# --------------------------------
-def save_sent(sent):
+def save_sent(data):
 
     with open(SENT_FILE, "w") as f:
-        json.dump(sent, f, indent=4)
+        json.dump(data, f, indent=4)
 
 
-# --------------------------------
-# Send Telegram message
-# --------------------------------
 def send_message(text):
 
-    if BOT_TOKEN == "" or CHAT_ID == "":
-        print("Telegram not configured.")
+    if not BOT_TOKEN or not CHAT_ID:
+        print("Telegram credentials not configured.")
         return
 
     url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
@@ -50,28 +40,20 @@ def send_message(text):
         "disable_web_page_preview": False,
     }
 
-    try:
+    r = requests.post(
+        url,
+        data=payload,
+        timeout=30,
+    )
 
-        r = requests.post(
-            url,
-            data=payload,
-            timeout=30,
-        )
-
-        r.raise_for_status()
-
-    except Exception as e:
-        print("Telegram Error:", e)
+    r.raise_for_status()
 
 
-# --------------------------------
-# Notify only new products
-# --------------------------------
 def notify(products):
 
     sent = load_sent()
 
-    changed = False
+    updated = False
 
     for product in products:
 
@@ -81,21 +63,25 @@ def notify(products):
             continue
 
         sent.append(product_id)
-        changed = True
+        updated = True
 
         price = int(float(product["finalPrice"]))
 
         message = f"""
-🔥 Lenovo Outlet Match Found!
+🔥 Lenovo Outlet Match Found
 
-💻 {product['productName']}
+💻 {product["productName"]}
 
 💰 ₹{price:,}
 
-🔗 https://www.lenovo.com{product['url']}
+🔗 https://www.lenovo.com{product["url"]}
 """
 
-        send_message(message.strip())
+        try:
+            send_message(message.strip())
+            print(f"Telegram sent for {product_id}")
+        except Exception as e:
+            print(e)
 
-    if changed:
+    if updated:
         save_sent(sent)
