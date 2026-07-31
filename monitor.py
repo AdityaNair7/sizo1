@@ -5,7 +5,11 @@ import requests
 from config import *
 
 HEADERS = {
-    "User-Agent": "Mozilla/5.0"
+    "Accept": "*/*",
+    "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    "Origin": "https://www.lenovo.com",
+    "Referer": "https://www.lenovo.com/",
+    "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36",
 }
 
 
@@ -22,26 +26,37 @@ def get_page(page):
         "sorts": ["newest", "priceUp"],
         "version": "v2",
         "enablePreselect": True,
+        "productIndex": "",
         "subseriesCode": ""
     }
 
+    # Convert JSON to compact string
+    json_string = json.dumps(params, separators=(",", ":"))
+
+    # Double encode exactly like Lenovo
     encoded = urllib.parse.quote(
-        urllib.parse.quote(
-            json.dumps(params, separators=(",", ":"))
-        )
+        urllib.parse.quote(json_string, safe=""),
+        safe=""
     )
 
-    r = requests.get(
-        URL,
-        params={
-            "pageFilterId": PAGE_FILTER_ID,
-            "subSeriesCode": "",
-            "loyalty": "false",
-            "params": encoded
-        },
-        headers=HEADERS,
-        timeout=30
+    # Build URL manually (don't let requests encode again)
+    url = (
+        f"{URL}"
+        f"?pageFilterId={PAGE_FILTER_ID}"
+        f"&subSeriesCode="
+        f"&loyalty=false"
+        f"&params={encoded}"
     )
+
+    print(url)  # Remove later after debugging
+
+    r = requests.get(
+        url,
+        headers=HEADERS,
+        timeout=30,
+    )
+
+    print("Status Code:", r.status_code)
 
     r.raise_for_status()
 
@@ -56,7 +71,7 @@ page = 1
 
 while True:
 
-    print(f"Downloading page {page}")
+    print(f"\nDownloading page {page}")
 
     data = get_page(page)
 
