@@ -12,6 +12,8 @@ from config import (
     SSD,
 )
 
+from telegram import notify
+
 HEADERS = {
     "User-Agent": (
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
@@ -24,10 +26,8 @@ HEADERS = {
 }
 
 
-# ----------------------------
-# Build API URL
-# ----------------------------
 def build_url(page):
+
     payload = {
         "classificationGroupIds": "400001",
         "pageFilterId": PAGE_FILTER_ID,
@@ -54,10 +54,8 @@ def build_url(page):
     )
 
 
-# ----------------------------
-# Download all products
-# ----------------------------
 def get_all_products():
+
     products = []
 
     page = 1
@@ -79,9 +77,7 @@ def get_all_products():
         if page == 1:
             total_pages = data["pageCount"]
 
-        page_data = data["data"]
-
-        for section in page_data:
+        for section in data["data"]:
             products.extend(section["products"])
 
         if page >= total_pages:
@@ -92,44 +88,28 @@ def get_all_products():
     return products
 
 
-# ----------------------------
-# Convert classification list
-# ----------------------------
 def get_specs(product):
 
     specs = {}
 
     for item in product.get("classification", []):
 
-        key = item.get("a", "").strip()
-        value = item.get("b", "").strip()
-
-        specs[key] = value
+        specs[item["a"]] = item["b"]
 
     return specs
 
 
-# ----------------------------
-# Safe price conversion
-# ----------------------------
 def get_price(product):
 
-    raw = product.get("finalPrice", "99999999")
-
     try:
-        return int(float(raw))
+        return int(float(product["finalPrice"]))
     except:
         return 99999999
 
 
-# ----------------------------
-# Filter logic
-# ----------------------------
 def is_match(product):
 
-    price = get_price(product)
-
-    if price > MAX_PRICE:
+    if get_price(product) > MAX_PRICE:
         return False
 
     specs = get_specs(product)
@@ -140,47 +120,31 @@ def is_match(product):
     storage = specs.get("Storage", "")
     os = specs.get("Operating System", "")
 
-    # CPU
     if not any(cpu in processor for cpu in CPU):
         return False
 
-    # GPU
     if not any(gpu.lower() in graphics.lower() for gpu in GPU):
         return False
 
-    # RAM
-    if f"{RAM} GB" not in memory and f"{RAM}GB" not in memory:
+    if "16 GB" not in memory and "32 GB" not in memory and "64 GB" not in memory:
         return False
 
-    # SSD
-    if f"{SSD} TB" in storage:
-        pass
-    elif "1 TB" in storage:
-        pass
-    elif f"{SSD} GB" in storage:
-        pass
-    elif "1024 GB" in storage:
-        pass
-    else:
+    if "1 TB" not in storage and "1024 GB" not in storage:
         return False
 
-    # Windows
     if "Windows 11" not in os:
         return False
 
     return True
 
 
-# ----------------------------
-# Print laptop
-# ----------------------------
 def print_product(product):
 
     specs = get_specs(product)
 
     print("=" * 70)
     print(product["productName"])
-    print(f"₹ {get_price(product):,}")
+    print(f"₹{get_price(product):,}")
     print(specs.get("Processor", ""))
     print(specs.get("Graphic Card", ""))
     print(specs.get("Memory", ""))
@@ -189,31 +153,29 @@ def print_product(product):
     print()
 
 
-# ----------------------------
-# Main
-# ----------------------------
 def main():
 
     products = get_all_products()
 
-    print()
-    print(f"Total products : {len(products)}")
-    print()
+    print(f"\nTotal products : {len(products)}\n")
 
     matches = []
 
     for product in products:
 
         try:
+
             if is_match(product):
                 matches.append(product)
+
         except Exception as e:
-            print(f"Skipped {product.get('productName')} -> {e}")
+
+            print(product.get("productName"))
+            print(e)
 
     print("=" * 70)
     print(f"Matches Found : {len(matches)}")
     print("=" * 70)
-    print()
 
     if not matches:
         print("No matching laptops found.")
@@ -221,6 +183,8 @@ def main():
 
     for product in matches:
         print_product(product)
+
+    notify(matches)
 
 
 if __name__ == "__main__":
