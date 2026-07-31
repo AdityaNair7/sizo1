@@ -8,25 +8,30 @@ with sync_playwright() as p:
         args=["--disable-dev-shm-usage"]
     )
 
-    page = browser.new_page()
+    page = browser.new_page(viewport={"width": 1600, "height": 900})
 
-    print("Opening Lenovo...")
+    page.goto(URL, wait_until="domcontentloaded")
 
-    page.goto(
-        URL,
-        wait_until="domcontentloaded",
-        timeout=120000
-    )
+    page.wait_for_timeout(10000)
 
-    print("Waiting for JavaScript...")
+    while True:
+        try:
+            button = page.locator("text=Load more results")
 
-    page.wait_for_timeout(20000)
+            if button.count() == 0:
+                break
 
-    html = page.content()
+            if not button.is_visible():
+                break
+
+            button.click()
+
+            page.wait_for_timeout(3000)
+
+        except Exception:
+            break
 
     with open("output.html", "w", encoding="utf-8") as f:
-        f.write(html)
-
-    print("Saved output.html")
+        f.write(page.content())
 
     browser.close()
