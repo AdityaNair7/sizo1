@@ -6,15 +6,11 @@ def get_products(html):
 
     products = []
 
-    # Find every product card
-    cards = soup.find_all("div")
+    cards = soup.select("div.price-stack")
 
     for card in cards:
 
         text = card.get_text(" ", strip=True)
-
-        if "₹" not in text:
-            continue
 
         products.append({
             "text": text
