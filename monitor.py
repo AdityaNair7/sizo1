@@ -1,85 +1,78 @@
-from playwright.sync_api import sync_playwright
-from parser import get_products
+import json
+import urllib.parse
+import requests
 
-URL = "https://www.lenovo.com/in/outletin/en/laptops/"
+from config import *
 
-with sync_playwright() as p:
+HEADERS = {
+    "User-Agent": "Mozilla/5.0"
+}
 
-    browser = p.chromium.launch(
-        headless=True,
-        args=["--disable-dev-shm-usage"]
+
+def get_page(page):
+
+    params = {
+        "classificationGroupIds": "400001",
+        "pageFilterId": PAGE_FILTER_ID,
+        "facets": [],
+        "page": page,
+        "pageSize": 30,
+        "groupCode": "",
+        "init": True,
+        "sorts": ["newest", "priceUp"],
+        "version": "v2",
+        "enablePreselect": True,
+        "subseriesCode": ""
+    }
+
+    encoded = urllib.parse.quote(
+        urllib.parse.quote(
+            json.dumps(params, separators=(",", ":"))
+        )
     )
 
-    page = browser.new_page(
-        viewport={"width": 1600, "height": 900}
-    )
-
-    print("Opening Lenovo Outlet...")
-
-    page.goto(
+    r = requests.get(
         URL,
-        wait_until="domcontentloaded",
-        timeout=120000
+        params={
+            "pageFilterId": PAGE_FILTER_ID,
+            "subSeriesCode": "",
+            "loyalty": "false",
+            "params": encoded
+        },
+        headers=HEADERS,
+        timeout=30
     )
 
-    page.wait_for_timeout(10000)
+    r.raise_for_status()
 
-    previous_count = 0
+    return r.json()
 
-    while True:
 
-        # Scroll to bottom
-        page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
-        page.wait_for_timeout(3000)
+# ---------------- Main Program ----------------
 
-        cards = page.locator("div.price-stack")
-        current_count = cards.count()
+products = []
 
-        print(f"Current cards: {current_count}")
+page = 1
 
-        if current_count == previous_count:
-            print("No new cards detected.")
-        else:
-            previous_count = current_count
+while True:
 
-        button = page.locator("text=Load more results")
+    print(f"Downloading page {page}")
 
-        if button.count() == 0:
-            print("Load More button not found.")
-            break
+    data = get_page(page)
 
-        try:
-            button.first.scroll_into_view_if_needed()
-            page.wait_for_timeout(1000)
+    pages = data["data"]["pageCount"]
 
-            if button.first.is_visible():
-                print("Clicking Load More...")
-                button.first.click(force=True)
-                page.wait_for_timeout(6000)
-            else:
-                print("Button not visible.")
-                break
+    groups = data["data"]["data"]
 
-        except Exception as e:
-            print("Finished loading.")
-            print(e)
-            break
+    if not groups:
+        break
 
-    html = page.content()
+    for group in groups:
+        products.extend(group["products"])
 
-    with open("output.html", "w", encoding="utf-8") as f:
-        f.write(html)
+    if page >= pages:
+        break
 
-    products = get_products(html)
+    page += 1
 
-    print("\n")
-    print("=" * 80)
-    print("Products found:", len(products))
-    print("=" * 80)
-
-    for i, product in enumerate(products, start=1):
-        print(f"\nPRODUCT {i}")
-        print("-" * 80)
-        print(product["text"][:700])
-
-    browser.close()
+print(f"\nTotal products: {len(products)}")
