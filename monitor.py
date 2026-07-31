@@ -14,25 +14,55 @@ with sync_playwright() as p:
         viewport={"width": 1600, "height": 900}
     )
 
-    page.goto(URL, wait_until="domcontentloaded")
+    print("Opening Lenovo Outlet...")
+
+    page.goto(
+        URL,
+        wait_until="domcontentloaded",
+        timeout=120000
+    )
 
     page.wait_for_timeout(10000)
 
+    previous_count = 0
+
     while True:
+
+        # Scroll to bottom
+        page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
+        page.wait_for_timeout(3000)
+
+        cards = page.locator("div.price-stack")
+        current_count = cards.count()
+
+        print(f"Current cards: {current_count}")
+
+        if current_count == previous_count:
+            print("No new cards detected.")
+        else:
+            previous_count = current_count
+
+        button = page.locator("text=Load more results")
+
+        if button.count() == 0:
+            print("Load More button not found.")
+            break
+
         try:
-            button = page.locator("text=Load more results")
+            button.first.scroll_into_view_if_needed()
+            page.wait_for_timeout(1000)
 
-            if button.count() == 0:
+            if button.first.is_visible():
+                print("Clicking Load More...")
+                button.first.click(force=True)
+                page.wait_for_timeout(6000)
+            else:
+                print("Button not visible.")
                 break
 
-            if not button.is_visible():
-                break
-
-            button.click()
-
-            page.wait_for_timeout(3000)
-
-        except Exception:
+        except Exception as e:
+            print("Finished loading.")
+            print(e)
             break
 
     html = page.content()
@@ -42,10 +72,14 @@ with sync_playwright() as p:
 
     products = get_products(html)
 
+    print("\n")
+    print("=" * 80)
     print("Products found:", len(products))
+    print("=" * 80)
 
-    for product in products[:10]:
-        print("=" * 80)
-        print(product["text"][:500])
+    for i, product in enumerate(products, start=1):
+        print(f"\nPRODUCT {i}")
+        print("-" * 80)
+        print(product["text"][:700])
 
     browser.close()
