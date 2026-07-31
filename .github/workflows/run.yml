@@ -5,7 +5,7 @@ on:
 
   schedule:
     # Every 15 minutes
-    - cron: "*/15 * * * *"
+    - cron: "*/5 * * * *"
 
 jobs:
   monitor:
