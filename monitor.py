@@ -1,40 +1,21 @@
-import os
-import json
-import requests
+from playwright.sync_api import sync_playwright
 
-from config import *
+URL = "https://www.lenovo.com/in/outletin/en/laptops/"
 
-BOT_TOKEN = os.environ["BOT_TOKEN"]
-CHAT_ID = os.environ["CHAT_ID"]
+with sync_playwright() as p:
+    browser = p.chromium.launch(headless=True)
 
-url = "https://openapi.lenovo.com/in/outletin/en/ofp/search/dlp/product/query/get/_tsc"
+    page = browser.new_page()
 
-params = {
-    "pageFilterId": "afdcd3f7-d8e6-4e9e-a76a-d6060dc75ae9",
-    "subSeriesCode": "",
-    "loyalty": "false",
-    "params": json.dumps({
-        "classificationGroupIds": "400001",
-        "pageFilterId": "afdcd3f7-d8e6-4e9e-a76a-d6060dc75ae9",
-        "facets": [],
-        "page": "1",
-        "pageSize": 30,
-        "groupCode": "",
-        "init": True,
-        "sorts": ["newest", "priceUp"],
-        "version": "v2",
-        "enablePreselect": True,
-        "subseriesCode": ""
-    })
-}
+    page.goto(URL, wait_until="networkidle", timeout=120000)
 
-headers = {
-    "User-Agent": "Mozilla/5.0"
-}
+    page.wait_for_timeout(10000)
 
-response = requests.get(url, params=params, headers=headers)
+    html = page.content()
 
-print(response.status_code)
+    with open("output.html", "w", encoding="utf-8") as f:
+        f.write(html)
 
-with open("response.json", "w", encoding="utf-8") as f:
-    f.write(response.text)
+    print("Page downloaded successfully.")
+
+    browser.close()
